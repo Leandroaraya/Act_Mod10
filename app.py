@@ -1,6 +1,7 @@
 import os
 import joblib
 import numpy as np
+import pandas as pd  # <-- Import necesario
 import logging
 from flask import Flask, request, jsonify
 
@@ -38,20 +39,20 @@ def predict():
         if not isinstance(features, list):
             return jsonify({"error": "'features' debe ser una lista"}), 400
 
-        # Convertir a numpy array y dar forma correcta
-        features_array = np.array(features).reshape(1, -1)
-
-        # <-- Validación de cantidad de características -->
-        if features_array.shape[1] != model.n_features_in_:
+        # <-- Convertir lista a DataFrame con nombres de columnas del modelo -->
+        try:
+            features_df = pd.DataFrame([features], columns=model.feature_names_in_)
+        except ValueError:
             return jsonify({"error": f"Se esperaban {model.n_features_in_} características"}), 400
 
         # Predicción
-        prediction = model.predict(features_array).tolist()
+        prediction = model.predict(features_df).tolist()
 
         return jsonify({"prediction": prediction})
 
     except Exception as e:
         logging.error("Error en predicción: %s", e)
         return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
